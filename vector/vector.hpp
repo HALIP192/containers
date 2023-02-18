@@ -23,7 +23,110 @@ namespace ntitan {
         typedef wraper_reverse_iter<const_iterator>     const_reverse_iterator;
 
     private:
+		size_type 		sizeAllocMem;
+		allocator_type	allocator;
+		pointer			pArrBegin;
+		pointer			pArrEnd;
 
+		void copyContextFromBegin(pointer pArgDst, pointer pArgSrc, size_type argCount) {
+			while (argCount-- > 0) {
+				*(pArgDst++) = *(pArgSrc++);
+			}
+		}
+
+		template <class InputIt>
+		void copyContextFromBegin(pointer pArgDst,
+								  typename enable_if<!is_integral<InputIt>::value,
+								  InputIt>::type argItBegin, InputIt argItEnd) {
+			for (InputIt it = argItBegin; it != argItEnd; ++it)
+				*(pArgDst++) = *it;
+		}
+		
+		void copyContext(pointer pArgDst, size_type argCount, size_type argValueInit) {
+			for (size_type i = 0; i < argCount; ++i) {
+				pArgDst[i] = argValueInit;
+			}
+		}
+
+		void copyContextFromEnd(pointer pArgDst, pointer pArgSrc, size_type argCount) {
+			pArgDst += argCount;
+			pArgSrc += argCount;
+			while (argCount-- > 0) {
+				*(--pArgDst) = *(--pArgSrc);
+			}
+		}
+
+		template <class InputIt>
+		void copyContextFromEnd(pointer pArgDst,
+								typename enable_if<!is_integral<InputIt>::value,
+								InputIt>::type argItBegin, InputIt argItEnd) {
+			pArgDst += std::distance(argItBegin, argItEnd);
+			for (InputIt it = argItEnd - 1; it >= argItBegin; --it)
+				*(--pArgDst) = *it;
+		}
+
+		void initMem(pointer pArgBegin, size_type argCount) {
+			value_type value;
+
+			while(argCount-- > 0) {
+				allocator.construct(pArgBegin++, value);
+			}
+		}
+
+		void cpy(pointer pArgDst, pointer pArgSrc, size_type argCount) {
+			for(size_type i = 0; i < argCount; ++i) {
+				allocator.construct(pArgDst++, *(pArgSrc++));
+			}
+		}
+
+		void cpy(pointer pArgDst,size_type argCount, const_reference argValueInit) {
+			for (size_type i = 0; i < argCount; ++i) {
+				allocator.construct(pArgDst++, argValueInit);
+			}
+		}
+
+		template <InputIt>
+		void cpy(pointer pArgDst,
+				 typename enable_if<!is_integral<InputIt>::value,
+				 InputIt>::type argItBegin, InputIt argItEnd) {
+			for (; argItBegin != argItEnd; ++argItBegin) {
+				allocator.construct(pArgDst++, *argItBegin);
+			}
+		}
+
+		void init(size_type argCount, const_reference argValueInit) {
+			sizeAllocMem = argCount;
+			pArgBegin = allocator.allocate(sizeAllocMem);
+			pArrEnd = pArrBegin + argCount;
+			cpy(pArrBegin, argCount, argValueInit);
+		}
+
+		template<class InputIt>
+		void init(typename enable_if<!is_integral<InputIt>::value, InputIt>::type argItBegin,
+				  InputIt argItEnd) {
+			difference_type diffPtr = std::distance(argItBegin, argItEnd);
+			sizeAllocMem = diffPtr;
+			pArrBegin = allocator.allocate(diffPtr);
+			pArrEnd = pArgBegin + diffPtr;
+			cpy(pArrBegin, argItBegin, argItEnd);
+		}
+
+		void clean() {
+			for (pointer it = pArrBegin; it != pArrEnd; ++it)
+				allocator.destroy(it);
+			allocator.deallocate(pArrBegin, sizeAllocMem);
+			pArrBegin = NULL;
+			pArrEnd = NULL;
+		}
+
+		void cleanRange(pointer argStart, size_type argCount) {
+			pointer end = argStart + argCount;
+
+			for (; argStart != end; ++argStart) {
+				allcoator.destroy(argStart);
+			}
+		}
+		
     public:
         vector();
         explicit vector( const Allocator& alloc );
