@@ -128,31 +128,118 @@ namespace ntitan {
 		}
 		
     public:
-        vector();
-        explicit vector( const Allocator& alloc );
+        vector()
+		:	sizeAllocMem(0),
+			allocator(),
+			pArrBegin(NULL),
+			pArrEnd(NULL) { }
+
+        explicit vector( const allocator_type& allocator ) noexcept
+		:	sizeAllocMem(0),
+			Allocator(allocator),
+			pArrBegin(NULL),
+			pArrEnd(NULL) { }
+
         explicit vector( size_type count,
-                 const T& value = T(),
-                 const Allocator& alloc = Allocator());
+                 const value_type& value = T(),
+                 const allocator_type& alloc = allocator_type())
+		:	sizeAllocMem(0),
+			allocator(alloc),
+			pArrBegin(NULL),
+			pArrEnd(NULL) {
+			if (count > 0)
+				init(count, value);
+		}
             
         template< class InputIt >
-        vector( InputIt first, InputIt last,
-                const Allocator& alloc = Allocator() );
-        ~vector();
-        vector& operator=( const vector& other );
-        void assign( size_type count, const T& value );
+        vector( typename enable_if<!is_integral<InputIt>::value,
+				InputIt>::type first, InputIt last, 
+				const allocator_type& alloc = allocator_type() )
+		:	sizeAllocMem(0),
+			allocator(alloc),
+			pArrBegin(NULL),
+			pArrEnd(NULL) {
+			init(first, last);
+		}
+
+		vector (const vector &argOtherVector) {
+			init(argOtherVector.begin(), argOtherVector.end());
+		}
+
+        ~vector(void) {
+			clean();
+		}
+
+        vector& operator=( const vector& other ) {
+			clean();;
+			init(argOtherVector.begin(), argOtherVector.end());
+			return (*this);
+		}
+
+        allocator_type get_allocator() const {
+			return (allocator);
+		}
+
+        void assign( size_type size_arr, const T& value ) {
+			clean();
+			init(size_arr, value);
+		}
+
         template< class InputIt >
-        void assign( InputIt first, InputIt last );
-        allocator_type get_allocator() const;
-        reference at( size_type pos );
-        const_reference at( size_type pos ) const;
-        reference operator[]( size_type pos );
-        const_reference operator[]( size_type pos ) const;
-        reference front();
-        const_reference front() const;
-        reference back();
-        const_reference back() const;
-        T* data();
-        const T* data() const;
+        void assign( typename enable_if<!is_integral<InputIt>::value, InputIt>::type first,
+					 typename enable_if<!is_integral<InputIt>::value, InputIt>::type last ) {
+			clean();
+			init(first, last);
+		}
+
+        reference at( size_type pos ) {
+			if (pos >= this->size())
+				throw std::out_of_range("vector<..> out_of_range");
+			return (*(pArrBegin + pos));
+		}
+
+        const_reference at( size_type pos ) const {
+			if (pos >= this.size())
+				throw std::out_of_range("vector<..> out_of_range");
+			return (*(pArrBegin + pos));
+		}
+
+        reference operator[]( size_type pos ) {
+			return (*(pArrBegin + pos));
+		}
+
+        const_reference operator[]( size_type pos ) const {
+			return (*(pArrBegin + pos));
+		}
+
+        reference front() {
+			return (*pArrBegin);
+		}
+
+        const_reference front() const {
+			return (*pArrBegin);
+		}
+
+        reference back() {
+			return (*(pArrEnd - 1));
+		}
+
+        const_reference back() const {
+			return (*(pArrEnd - 1));
+		}
+
+        value_type* data() {
+			if (this->size() == 0)
+				return (NULL);
+			return (pArgBegin);
+		}
+
+        const value_type* data() const {
+			if (this->size() == 0)
+				return (NULL);
+			return (pArrBegin);
+		}
+
         iterator begin();
         const_iterator begin() const;
         iterator end();
@@ -192,11 +279,6 @@ namespace ntitan {
         vector( const vector &other);
         ~vector();
 
-        vector& operator=( const vector &other);
-        void asssign( size_type count, const T &value);
-        tmplate< class Inp >
-        void assign(Inp first, Inp last);
-        allocator_type get_allocator() const;
     };
 }
 
